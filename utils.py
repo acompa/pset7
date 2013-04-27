@@ -4,38 +4,45 @@ import os
 from collections import defaultdict
 from random import shuffle
 
-def read_file(fname, datamap):
-	"""
-	Add data for each token in the file to a data map.
+FEATURE_COUNT = 5
 
-	Map is expected to map from tokens to a list of samples:
-
-	datamap['foo'] = [(y_foo1, x_foo1), (y_foo2, x_foo2), ...]
-		See p.2 of HW for more information.
+def read_file(fname, dataset):
 	"""
+	Add a sample with the file's contents to dataset. A sample takes the form
+	(y, xs)	where x is a word_num x feature_num matrix.
+	"""
+	assert isinstance(dataset, set)
+
 	with open(fname) as f:
-		for line in f:
-			line = line.split(',')
+		contents = f.read().strip().split('\n')
+		count = len(contents)
+		y = np.zeros(count)
+		xs = np.zeros((count, FEATURE_COUNT))
 
-			# Get features and tag, then add them to token.
-			xs = [int(n) for n in line[2:]]
-			y = int(line[1])
+		# Populate y and each row of xs.
+		for idx in range(count):
+			line = contents[idx].split(',')
+
+			# Get features and tag, update sample
+			xs[idx, :] = [int(n) for n in line[2:]]
+			y[idx] = int(line[1])
 			token = line[0]
-			datamap[token].append(tuple(y, xs))
 
-def populate_map_with_data(maptype, limit=None):
+		dataset.add((y, xs))
+
+def populate_set_with_data(settype, limit=None):
 	"""
-	Populate a map with all training data or all test data. Map type must be
+	Populate a set with all training data or all test data. Set type must be
 	'train' or 'test'.
 
-	maptype:	'train' or 'test'
+	settype:	'train' or 'test'
 	limit:		int; number of samples to add
 	"""
-	assert maptype == 'train' or maptype == 'test'
+	assert settype == 'train' or settype == 'test'
 	assert type(limit) is int
 
-	datamap = defaultdict(list)
-	filenames = [fname for fname in os.listdir('Data/') if maptype in fname]
+	dataset = set([])
+	filenames = [fname for fname in os.listdir('Data/') if settype in fname]
 	shuffle(filenames)
 
 	# Read up to $limit samples.
@@ -43,8 +50,8 @@ def populate_map_with_data(maptype, limit=None):
 		limit = len(filenames)
 	for _ in xrange(limit):
 		fname = filenames.pop()
-		read_file(fname, datamap)
+		read_file(fname, dataset)
 
-	return datamap
+	return dataset
 
 

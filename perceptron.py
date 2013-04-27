@@ -16,16 +16,20 @@ w_{Y, a, v}. Weights also exist between tags for parts of speech.
 """
 import numpy as np
 
-ITERATIONS = 10
+from maxsum import belief_propagation
 
-def predict_pos(x, weights):
+ITERATIONS = 50
+
+def predict_pos(x, weights, crf):
 	"""
 	Predict the part-of-speech for a given feature vector and weights.
 	Performed by variable elimination or max-sum BP on the CRF.
 
 	"""
 	# TODO: implement max-sum BP.
-	return
+	y_new = belief_propagation(x, crf)
+	assert x.shape[0] == y_new.shape[0]
+	return y_new
 
 def f(x, y):
 	""" Feature vector (sufficient statistics) for the CRF. """
@@ -38,6 +42,7 @@ def perceptron(samples):
 
 	Learns weights from a set of samples, then returns those weights.
 	"""
+	# TODO: get samples in here
 	assert type(samples) == list
 	assert len(samples) > 0
 
@@ -45,10 +50,17 @@ def perceptron(samples):
 	weights = 0
 	weights_bar = 0
 
+	# TODO: create CRF
+	crf = None
+
 	for _ in range(ITERATIONS):
 		for sample in samples:
-			x, y = sample
-			y_new = predict_pos(x, weights)
+			y, x = sample
+
+			# x should have the same # of words (rows) as y and one column for
+			# each feature
+			assert x.shape[0] == y.shape[0]
+			y_new = predict_pos(x, weights, crf)
 			if y != y_new:
 				weights = weights + f(x, y) - f(x, y_new)
 				weights_bar = (weights_bar +
