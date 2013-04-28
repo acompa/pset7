@@ -6,10 +6,15 @@ from random import shuffle
 
 FEATURE_COUNT = 5
 
+# Ugly ugly singletons, but whatever.
+FEATURE_TUPLE = build_feature_tuple()
+NGRAM_TUPLE = build_ngram_tuple()
+NGRAM_LENGTH = len(NGRAM_TUPLE)
+
 def read_file(fname, dataset):
 	"""
 	Add a sample with the file's contents to dataset. A sample takes the form
-	(y, xs)	where x is a word_num x feature_num matrix.
+	(xs, y)	where x is a word_num x feature_num matrix.
 	"""
 	assert isinstance(dataset, set)
 
@@ -28,7 +33,7 @@ def read_file(fname, dataset):
 			y[idx] = int(line[1])
 			token = line[0]
 
-		dataset.add((y, xs))
+		dataset.add((xs, y))
 
 def populate_set_with_data(settype, limit=None):
 	"""
@@ -54,4 +59,48 @@ def populate_set_with_data(settype, limit=None):
 
 	return dataset
 
+def build_feature_tuple():
+	"""
+	Generate the tuple of features used to build weight and feature vectors
+	for structured perceptron.
+	"""
+	# Number of tags
+	num_tags = 10
+
+	# Features, as defined in hw
+	bias = 1
+	initial_cap = 2
+	all_caps = 2
+	prefix_id = 201
+	suffix_id = 201
+
+	# Return the feature tuple.
+	return (('num_tags', num_tags),
+			('bias', bias),
+			('initial_cap', initial_cap),
+			('all_caps', all_caps),
+			('prefix_id', prefix_id),
+			('suffix_id', suffix_id))
+
+def build_ngram_tuple():
+	"""
+	Generate a tuple used for building the pairwise weights & features.
+	"""
+	# Number of tags and ngram size
+	num_tags = 10
+	ngram_size = 2
+
+	# Build tuple
+	dims = [num_tags for _ in range(ngram_size)]
+	return tuple(dims)
+
+def inflate_flat_feature_vec(container):
+	# Slice off the ngram matrix and reinflate it.
+	possible_ngrams = reduce(op.mul, NGRAM_TUPLE)
+	ngram_mat = container[-possible_ngrams:].reshape(NGRAM_TUPLE)
+
+	# Reinflate the remaining feature matrix.
+	feature_mat = container[:-possible_ngrams].reshape(FEATURE_TUPLE)
+
+	return (feature_mat, ngram_mat)
 

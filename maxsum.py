@@ -44,20 +44,31 @@ def part_of_speech_map(parts, features):
 
 	return to_features
 
-def belief_propagation(x, crf):
+def belief_propagation(xs, weights, crf):
 	"""
 	Passes messages along the part-of-speech CRF produced by create_crf().
 
-	Node potentials are created by restricting weights for each part of speech
-	using the observed words x.	Edge potentials are...
+	Node potentials := sum of weights for observed features in x
+		=> should have shape == # of tags
+
+	Edge potentials := weight for (y, y+1)
+		=> should have shape == # of tags x 2
 
 	With node & edge potentials in hand, we pass messages until convergence.
 	Then we find the argmax assignment to the speech parts for the sentence
 	in the CRF.
-	"""
 
-	# TODO: edge potentials?!?
+	xs:
+		features of observed words
+	weights:
+		flat weight vector updated by structured perceptron
+	crf:
+		nx.Graph representing the CRF
+	"""
+	# TODO: how do I use flat weight vector w/ CRF?
 	assert isinstance(crf, nx.Graph)
+
+	# TODO: inflate weights, get correct values.
 
 	for node in crf:
 		pos_map = crf[node]['pos']
@@ -65,7 +76,7 @@ def belief_propagation(x, crf):
 		# Node potential is simply the vector in pos_map corresponding to the
 		# observed words
 		# TODO: organize weights s.t. I can grab a weight vector using x values
-		observation = x[node, :]
+		observation = xs[node, :]
 		node_potential = None
 
 	return
