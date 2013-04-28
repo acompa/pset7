@@ -1,7 +1,6 @@
 import numpy as np
 import os
 
-from collections import defaultdict
 from random import shuffle
 
 FEATURE_COUNT = 5
@@ -94,13 +93,22 @@ def build_ngram_tuple():
 	dims = [num_tags for _ in range(ngram_size)]
 	return tuple(dims)
 
-def inflate_flat_feature_vec(container):
-	# Slice off the ngram matrix and reinflate it.
-	possible_ngrams = reduce(op.mul, NGRAM_TUPLE)
-	ngram_mat = container[-possible_ngrams:].reshape(NGRAM_TUPLE)
+def get_feature_vec_slice(fvec, fidx, fvalue):
+	"""
+	For a fixed value of a given vector, return a slice of that feature's
+	ndarray.
 
-	# Reinflate the remaining feature matrix.
-	feature_mat = container[:-possible_ngrams].reshape(FEATURE_TUPLE)
+	fvec:
+		list of ndarrays; produced by perceptron.create_feature_vec()
+	fidx:
+		index of feature we're fixing
+	fvalue:
+		fix feature to this value
 
-	return (feature_mat, ngram_mat)
-
+	returns:
+		a vector of weights for all tag values, holding a feature value
+		constant
+	"""
+	slice = fvec.copy()[fidx][:, fvalue]
+	assert slice.shape[0] == FEATURE_COUNT
+	return slice

@@ -15,13 +15,9 @@ Note that weights exist for each feature, tag, and feature value, aka
 w_{Y, a, v}. Weights also exist between tags for parts of speech.
 """
 import numpy as np
-import random as rnd
-import operator as op
-
 import maxsum
 
-from utils import (FEATURE_TUPLE, NGRAM_TUPLE, NGRAM_LENGTH, 
-		inflate_flat_feature_vec)
+from utils import FEATURE_TUPLE, NGRAM_TUPLE, NGRAM_LENGTH
 
 ITERATIONS = 50
 
@@ -39,14 +35,14 @@ def feature_vec(xs, y):
 	y:
 		tag array in a sample
 	"""
-	f = _create_flat_feature_vec()
+	f = _create_feature_vec()
 
 	# Iterate over rows in x, values of y, and update f.
 	count = y.shape[0]
 	for idx in range(count):
 		word = xs[idx, :]
 		tag_ngram = y[idx:idx+NGRAM_LENGTH]
-		f = _update_flat_feature_vec(f, word, tag_ngram)
+		f = _update_feature_vec(f, word, tag_ngram)
 	return f
 
 def perceptron(samples):
@@ -66,15 +62,16 @@ def perceptron(samples):
 
 	# Use feature_tuple to build a multi-dim weight vector. Add ngram weights
 	# onto the flattened weight array
-	weights = _create_flat_feature_vec()
-	weights_bar = _create_flat_feature_vec()
-
-	# TODO: create CRF
-	crf = None
+	weights = _create_feature_vec()
+	weights_bar = _create_feature_vec()
 
 	for _ in range(ITERATIONS):
 		for sample in samples:
 			xs, y = sample
+
+			# CRF is linear, represented as a list of ints. These ints will be
+			# reassigned once we decode part-of-speech tags for each word.
+			crf = [0 for _ in range(y.shape[0])]
 
 			# x should have the same # of words (rows) as y and one column for
 			# each feature
@@ -88,41 +85,48 @@ def perceptron(samples):
 
 	return weights_bar
 
-def _create_flat_feature_vec():
+def _create_feature_vec():
 	"""
-	Creates a flat ndarray of zeros of size 
+	Create a list of ndarrays, where
 
-	number of tags * (Val(F) for F in features) + (number of tags)^ngram size
+		* the list has len == F + 1, where F := # of features
+		* the list's last element contains the ndarray of tag transition
+		  weights
 
-	We will use this container whenever populating the feature vector with
-	values.
+	returns:
+		list of ndarrays; see above
 	"""
-	# First flatten the feature array.
-	dims = [t[1] for t in FEATURE_TUPLE]
-	weights = np.zeros(dims).flatten()
+	num_tags = NGRAM_TUPLE[0]
+	fvec = []
+	for _, size in FEATURE_TUPLE:
+		fvec.append(np.zeros((num_tags, size)))
 
-	# Then stack the ngram array onto it.
-	return np.hstack((weights, np.zeros(NGRAM_TUPLE).flatten()))
+	# Append tag ngram weights to end
+	fvec.append(np.zeros((num_tags, num_tags)))
+	return fvec
 
-def _update_flat_feature_vec(container, word, tag_ngram):
+def _update_feature_vec(fvec, word, tag_ngram):
 	"""
-	Inflates the flat feature vector and increments its values depending on
-	word's and tag_ngram's features.
+	Increments the feature vector's values depending on word's and tag_ngram's
+	features.
 
-	container:
-		flat feature vector to update
+	fvec:
+		list of ndarrays produced by _create_feature_vec
 	word:
 		observed features for a word; one row from a sample's xs
 	tag_ngram:
 		ngram for a word and its successor; a slice of a sample's y
 	"""
-	feature_mat, ngram_mat = inflate_flat_feature_vec(container)
+	assert isinstance(fvec, list)
+	assert len(fvec) == len(word) + 1
+	assert len(tag_ngram) >= 1
+	tag = tag_ngram[0]
 
-	# Update both matrices with the values in word and tag_ngram.
-	feature_mat[tuple(word)] += 1
-	ngram_mat[tuple(tag_ngram)] += 1
+	# Iterate over feature values in word, increment fvec
+	for idx, fvalue in enumerate(word):
+		fvec[idx][tag, fvalue] += 1
 
-	# Flatten both again, return updated container
-	feature_mat = feature_mat.flatten()
-	return np.hstack((feature_mat, ngram_mat.flatten()))
+	# Update ngram matrix at the end of fvec
+	fvec[-1][tuple(tag_ngram)] += 1
+	return fvec
 

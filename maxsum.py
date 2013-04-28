@@ -1,82 +1,59 @@
 import numpy as np
-import networkx as nx
+import operator as op
 
-from collections import defaultdict
-
-def create_crf(length, parts, features):
-	"""
-	Populate a nx.Graph with a simple chain of parts of speech. Also attach a
-	map from nodes to PartOfSpeechs (see below).
-	"""
-	g = nx.Graph()
-	for node in range(0, length, 2):
-		# Add both nodes and their POS maps.
-		g.add_node(node, pos=part_of_speech_map(parts, features))
-		g.add_node(node+1, post=part_of_speech_map(parts, features))
-		
-		# Add weighted edge between nodes.
-		g.add_edge(node, node+1, weight=0.0)
-	return g
-
-def part_of_speech_map(parts, features):
-	"""
-	Method creating a part of speech. Each word has multiple parts of speech
-	associated with it; this object thus maps from each word's potential part
-	of speech to an object containing potentials for each of that word's
-	different features.
-
-	parts:
-		list of potential part names
-	features:
-		map of feature names to cardinality of value set
-	"""
-
-	# TODO: shitty data structure. Do better!
-
-	assert isinstance(parts, list)
-	assert isinstance(features, dict)
-
-	to_features = defaultdict(dict)
-	for part in parts:
-		for feature_name in features.keys():
-			num_vals = features[feature_name]
-			to_features[part][feature_name] = np.zeros(num_vals)
-
-	return to_features
+from utils import get_feature_vec_slice, FEATURE_COUNT
+from functools import reduce
 
 def belief_propagation(xs, weights, crf):
 	"""
-	Passes messages along the part-of-speech CRF produced by create_crf().
+	Passes messages along the part-of-speech linear-chain CRF.
 
 	Node potentials := sum of weights for observed features in x
-		=> should have shape == # of tags
+		* should have shape == # of tags
 
 	Edge potentials := weight for (y, y+1)
-		=> should have shape == # of tags x 2
+		* should have shape == # of tags x # of tags
+		* matrix is reduced as we traverse the CRF
 
 	With node & edge potentials in hand, we pass messages until convergence.
 	Then we find the argmax assignment to the speech parts for the sentence
 	in the CRF.
 
 	xs:
-		features of observed words
+		ndarray; shape == # of words x # of features
 	weights:
-		flat weight vector updated by structured perceptron
+		feature/weight vector produced by perceptron._create_feature_vec()
 	crf:
-		nx.Graph representing the CRF
-	"""
-	# TODO: how do I use flat weight vector w/ CRF?
-	assert isinstance(crf, nx.Graph)
+		list representing linear-chain CRF
 
-	# TODO: inflate weights, get correct values.
+	returns:
+		modified version of crf with tags decoded for each word
+	"""
+	# Defense
+	assert isinstance(weights, list)
+	assert len(weights) == FEATURE_COUNT + 1
+	assert isinstance(crf, list)
+	assert len(crf) == xs.shape[0]
+	assert isinstance(xs, np.ndarray)
+	assert xs.shape[1] == FEATURE_COUNT
 
 	for node in crf:
-		pos_map = crf[node]['pos']
+		tag_features = xs[node, :]
+		# Node potential is simply the sum of all tag vectors for each fixed
+		# feature value in tag_features.
+		node_potential = reduce(
+				op.add,
+				[get_feature_vec_slice(weights, fidx, fvalue)
+					for fidx, fvalue in enumerate(tag_features)])
 
-		# Node potential is simply the vector in pos_map corresponding to the
-		# observed words
-		# TODO: organize weights s.t. I can grab a weight vector using x values
-		observation = xs[node, :]
-		node_potential = None
+		# Edge potentials are simply the transition weights
+		edge_potentials = weights[-1]
 
-	return
+		# TODO: Create outgoing message for the node.
+		message_out = None
+
+	# TODO: after propagating to root, get root's MAP assignment and update crf
+	# TODO: with root's MAP assignment, propgate back down and update crf
+
+	return crf
+
