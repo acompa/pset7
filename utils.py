@@ -46,8 +46,11 @@ def populate_set_with_data(settype, limit=None):
 	assert type(limit) is int
 
 	dataset = set([])
+
+	# Get a sorted list of train or test files.
 	filenames = [fname for fname in os.listdir('Data/') if settype in fname]
-	shuffle(filenames)
+	filenames = sorted(filenames,
+			key=lambda x: int(re.findall('[0-9]{1,4}', x)[0])) 
 
 	# Read up to $limit samples.
 	if not limit or limit < len(filenames):
