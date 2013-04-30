@@ -3,6 +3,7 @@ import operator as op
 
 from utils import get_feature_vec_slice, FEATURE_COUNT
 from functools import reduce
+from ipdb import set_trace
 
 def belief_propagation(xs, weights, crf):
 	"""
@@ -55,8 +56,6 @@ def belief_propagation(xs, weights, crf):
 		node_potential.resize((num_tags, 1))
 		node_potentials.append(node_potential)
 
-		# Edge potentials are simply the transition weights
-
 		# Message outgoing from node in the chain CRF == sum of potentials and
 		# all incoming messages.
 		messages_in[idx].append(message_in)
@@ -75,7 +74,7 @@ def belief_propagation(xs, weights, crf):
 	max_marginals = [
 			node_potentials[node_idx] + reduce(op.add, messages_in[node_idx])
 			for node_idx in range(len(crf))]
-	assignments = [np.argmax(max_marg) for max_marg in max_marginals]
+	assignments = np.array([np.argmax(max_marg) for max_marg in max_marginals])
 
 	return assignments 
 

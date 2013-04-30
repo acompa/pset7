@@ -19,10 +19,12 @@ import numpy as np
 import maxsum
 
 from utils import FEATURE_TUPLE, NGRAM_TUPLE, NGRAM_LENGTH
+from string import join
+from ipdb import set_trace
 
 ITERATIONS = 50
 
-def feature_vec(xs, y):
+def _feature_vec(xs, y):
 	"""
 	Feature vector (sufficient statistics) for structured perceptron. Returns a
 	vector taking values = {0, 1}, where
@@ -70,19 +72,30 @@ def perceptron(samples):
 		for sample in samples:
 			xs, y = sample
 
-			# CRF is linear, represented as a list of ints. These ints will be
-			# reassigned once we decode part-of-speech tags for each word.
-			crf = [0 for _ in range(y.shape[0])]
-
 			# x should have the same # of words (rows) as y and one column for
 			# each feature
 			assert xs.shape[0] == y.shape[0]
 			assert xs.shape[1] == len(FEATURE_TUPLE)
-			y_new = maxsum.belief_propagation(xs, weights, crf)
-			if y != y_new:
-				weights = weights + feature_vec(xs, y) - feature_vec(xs, y_new)
-				weights_bar = (weights_bar +
-						(weights / (ITERATIONS * len(samples))))
+
+			# CRF is linear, represented as a list of ints. These ints will be
+			# reassigned once we decode part-of-speech tags for each word.
+			crf = [0 for _ in range(y.shape[0])]
+
+			y_est = maxsum.belief_propagation(xs, weights, crf)
+			print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
+			#set_trace()
+			if (y != y_est).any():
+				# TODO: update weights properly--they're no longer ndarrays!!
+				f_estimate = _feature_vec(xs, y_est)
+				f_actual = _feature_vec(xs, y)
+				update = [est - act for est, act in zip(f_estimate, f_actual)]
+				weights = [w + u for w, u in zip(weights, update)]
+				print "\tIncorrect tag estimate! Weights updated to:"
+				print weights
+				norm_weights = [w / (1.0 * ITERATIONS * len(samples))
+						for w in weights]
+				weights_bar = [wb + nw
+						for wb, nw in zip(weights_bar, norm_weights)]
 
 	return weights_bar
 

@@ -4,6 +4,7 @@ import re
 
 from random import shuffle
 
+TAG_COUNT = 10
 FEATURE_COUNT = 5
 
 def read_file(fname, dataset):
@@ -22,10 +23,17 @@ def read_file(fname, dataset):
 		# Populate y and each row of xs.
 		for idx in range(count):
 			line = contents[idx].split(',')
+			assert len(line) == 7		# as specified in hw
+			assert len(line[2:]) == 5	# sanity check
 
-			# Get features and tag, update sample
+			# Get features and tag, update sample. Decrease bias, prefix,
+			# tags, and suffix features by 1 (so they can be represented as
+			# idxs)
 			xs[idx, :] = [int(n) for n in line[2:]]
-			y[idx] = int(line[1])
+			xs[idx, 0] -= 1
+			xs[idx, 3] -= 1
+			xs[idx, 4] -= 1
+			y[idx] = int(line[1]) - 1
 			token = line[0]
 
 		dataset.append((xs, y))
@@ -62,9 +70,6 @@ def _build_feature_tuple():
 	Generate the tuple of features used to build weight and feature vectors
 	for structured perceptron.
 	"""
-	# Number of tags
-	num_tags = 10
-
 	# Features, as defined in hw
 	bias = 1
 	initial_cap = 2
@@ -84,11 +89,10 @@ def _build_ngram_tuple():
 	Generate a tuple used for building the pairwise weights & features.
 	"""
 	# Number of tags and ngram size
-	num_tags = 10
 	ngram_size = 2
 
 	# Build tuple
-	dims = [num_tags for _ in range(ngram_size)]
+	dims = [TAG_COUNT for _ in range(ngram_size)]
 	return tuple(dims)
 
 # Ugly ugly singletons, but whatever.
@@ -113,5 +117,5 @@ def get_feature_vec_slice(fvec, fidx, fvalue):
 		constant
 	"""
 	slice = fvec[fidx].copy()[:, fvalue]
-	assert slice.shape[0] == FEATURE_COUNT
+	assert slice.shape[0] == TAG_COUNT
 	return slice
