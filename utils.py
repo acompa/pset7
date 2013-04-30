@@ -1,21 +1,17 @@
 import numpy as np
 import os
+import re
 
 from random import shuffle
 
 FEATURE_COUNT = 5
-
-# Ugly ugly singletons, but whatever.
-FEATURE_TUPLE = build_feature_tuple()
-NGRAM_TUPLE = build_ngram_tuple()
-NGRAM_LENGTH = len(NGRAM_TUPLE)
 
 def read_file(fname, dataset):
 	"""
 	Add a sample with the file's contents to dataset. A sample takes the form
 	(xs, y)	where x is a word_num x feature_num matrix.
 	"""
-	assert isinstance(dataset, set)
+	assert isinstance(dataset, list)
 
 	with open(fname) as f:
 		contents = f.read().strip().split('\n')
@@ -32,7 +28,7 @@ def read_file(fname, dataset):
 			y[idx] = int(line[1])
 			token = line[0]
 
-		dataset.add((xs, y))
+		dataset.append((xs, y))
 
 def populate_set_with_data(settype, limit=None):
 	"""
@@ -43,9 +39,9 @@ def populate_set_with_data(settype, limit=None):
 	limit:		int; number of samples to add
 	"""
 	assert settype == 'train' or settype == 'test'
-	assert type(limit) is int
+	assert type(limit) is int or limit == None
 
-	dataset = set([])
+	dataset = []
 
 	# Get a sorted list of train or test files.
 	filenames = [fname for fname in os.listdir('Data/') if settype in fname]
@@ -56,12 +52,12 @@ def populate_set_with_data(settype, limit=None):
 	if not limit or limit < len(filenames):
 		limit = len(filenames)
 	for _ in xrange(limit):
-		fname = filenames.pop()
+		fname = "Data/" + filenames.pop()
 		read_file(fname, dataset)
 
 	return dataset
 
-def build_feature_tuple():
+def _build_feature_tuple():
 	"""
 	Generate the tuple of features used to build weight and feature vectors
 	for structured perceptron.
@@ -77,14 +73,13 @@ def build_feature_tuple():
 	suffix_id = 201
 
 	# Return the feature tuple.
-	return (('num_tags', num_tags),
-			('bias', bias),
+	return (('bias', bias),
 			('initial_cap', initial_cap),
 			('all_caps', all_caps),
 			('prefix_id', prefix_id),
 			('suffix_id', suffix_id))
 
-def build_ngram_tuple():
+def _build_ngram_tuple():
 	"""
 	Generate a tuple used for building the pairwise weights & features.
 	"""
@@ -95,6 +90,11 @@ def build_ngram_tuple():
 	# Build tuple
 	dims = [num_tags for _ in range(ngram_size)]
 	return tuple(dims)
+
+# Ugly ugly singletons, but whatever.
+FEATURE_TUPLE = _build_feature_tuple()
+NGRAM_TUPLE = _build_ngram_tuple()
+NGRAM_LENGTH = len(NGRAM_TUPLE)
 
 def get_feature_vec_slice(fvec, fidx, fvalue):
 	"""
@@ -112,6 +112,6 @@ def get_feature_vec_slice(fvec, fidx, fvalue):
 		a vector of weights for all tag values, holding a feature value
 		constant
 	"""
-	slice = fvec.copy()[fidx][:, fvalue]
+	slice = fvec[fidx].copy()[:, fvalue]
 	assert slice.shape[0] == FEATURE_COUNT
 	return slice

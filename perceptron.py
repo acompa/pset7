@@ -9,7 +9,8 @@ The CRF here takes the form
 
 where Y is a part of speech tag, a is a feature (one of 5) for each
 word, and v is the value set (one for each of the 5 features) each feature can
-draw from.
+draw from. a's are observed, so we can treat them as single-node potentials
+for each unobserved word tag.
 
 Note that weights exist for each feature, tag, and feature value, aka
 w_{Y, a, v}. Weights also exist between tags for parts of speech.
@@ -53,11 +54,11 @@ def perceptron(samples):
 	weight vector, then updates that vector using max-sum BP.
 
 	samples:
-		set of tuples of the form (word_mat, tag_array)
+		list of tuples of the form (word_mat, tag_array)
 			word_mat.shape == # of words x # of features
 			tag_array.shape == # of words
 	"""
-	assert type(samples) == set 
+	assert type(samples) == list
 	assert len(samples) > 0
 
 	# Use feature_tuple to build a multi-dim weight vector. Add ngram weights
@@ -84,6 +85,27 @@ def perceptron(samples):
 						(weights / (ITERATIONS * len(samples))))
 
 	return weights_bar
+
+def estimate_tags(samples, weights):
+	"""
+	Method for estimating tags for a set of samples.
+	"""
+	estimates = set([])
+	for sample in samples:
+		xs, y = sample
+
+		# CRF is linear, represented as a list of ints. These ints will be
+		# reassigned once we decode part-of-speech tags for each word.
+		crf = [0 for _ in range(y.shape[0])]
+
+		# x should have the same # of words (rows) as y and one column for
+		# each feature
+		assert xs.shape[0] == y.shape[0]
+		assert xs.shape[1] == len(FEATURE_TUPLE)
+		y_new = maxsum.belief_propagation(xs, weights, crf)
+		estimates.add(y_new)
+
+	return estimates
 
 def _create_feature_vec():
 	"""
