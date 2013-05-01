@@ -17,6 +17,7 @@ w_{Y, a, v}. Weights also exist between tags for parts of speech.
 """
 import numpy as np
 import maxsum
+import sys
 
 from utils import FEATURE_TUPLE, NGRAM_TUPLE, NGRAM_LENGTH
 from string import join
@@ -68,7 +69,12 @@ def perceptron(samples):
 	weights = _create_feature_vec()
 	weights_bar = _create_feature_vec()
 
-	for _ in range(ITERATIONS):
+	sys.stdout.write("[")
+	for iter in range(ITERATIONS):
+		if (iter + 1) % (ITERATIONS / 10.0) == 0:
+			sys.stdout.write("=")
+			if iter + 1 == ITERATIONS:
+				sys.stdout.write("]\nEstimates on final pass:\n")
 		for sample in samples:
 			xs, y = sample
 
@@ -82,8 +88,9 @@ def perceptron(samples):
 			crf = [0 for _ in range(y.shape[0])]
 
 			y_est = maxsum.belief_propagation(xs, weights, crf)
-			print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
-			print "Actual tags:  %s" % join([str(int(i)) for i in y], ' ')
+			if iter == ITERATIONS-1:
+				print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
+				print "Actual tags:  %s" % join([str(int(i)) for i in y], ' ')
 			#set_trace()
 			if (y != y_est).any():
 				# TODO: update weights properly--they're no longer ndarrays!!
@@ -93,7 +100,6 @@ def perceptron(samples):
 				weights = [w + u for w, u in zip(weights, update)]
 				#print "\tIncorrect tag estimate! Weights updated to:"
 				#print weights
-				print "\tIncorrect tag estimate! Weights updated."
 				norm_weights = [w / (1.0 * ITERATIONS * len(samples))
 						for w in weights]
 				weights_bar = [wb + nw
@@ -105,7 +111,7 @@ def estimate_tags(samples, weights):
 	"""
 	Method for estimating tags for a set of samples.
 	"""
-	estimates = set([])
+	estimates = []
 	for sample in samples:
 		xs, y = sample
 
@@ -118,7 +124,7 @@ def estimate_tags(samples, weights):
 		assert xs.shape[0] == y.shape[0]
 		assert xs.shape[1] == len(FEATURE_TUPLE)
 		y_new = maxsum.belief_propagation(xs, weights, crf)
-		estimates.add(y_new)
+		estimates.append(y_new)
 
 	return estimates
 
