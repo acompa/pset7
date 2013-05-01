@@ -83,15 +83,17 @@ def perceptron(samples):
 
 			y_est = maxsum.belief_propagation(xs, weights, crf)
 			print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
+			print "Actual tags:  %s" % join([str(int(i)) for i in y], ' ')
 			#set_trace()
 			if (y != y_est).any():
 				# TODO: update weights properly--they're no longer ndarrays!!
 				f_estimate = _feature_vec(xs, y_est)
 				f_actual = _feature_vec(xs, y)
-				update = [est - act for est, act in zip(f_estimate, f_actual)]
+				update = [act - est for est, act in zip(f_estimate, f_actual)]
 				weights = [w + u for w, u in zip(weights, update)]
-				print "\tIncorrect tag estimate! Weights updated to:"
-				print weights
+				#print "\tIncorrect tag estimate! Weights updated to:"
+				#print weights
+				print "\tIncorrect tag estimate! Weights updated."
 				norm_weights = [w / (1.0 * ITERATIONS * len(samples))
 						for w in weights]
 				weights_bar = [wb + nw
