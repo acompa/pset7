@@ -2,7 +2,8 @@ from utils import populate_set_with_data
 from perceptron import perceptron, estimate_tags
 
 def q2():
-	dataset = populate_set_with_data('train', limit = 100)
+	#dataset = populate_set_with_data('train', limit = 100)
+	dataset = populate_set_with_data('train', limit = 1)
 	weights = perceptron(dataset)
 
 	# Use learned weights to estimate y's

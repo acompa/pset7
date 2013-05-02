@@ -54,10 +54,10 @@ def populate_set_with_data(settype, limit=None):
 	# Get a sorted list of train or test files.
 	filenames = [fname for fname in os.listdir('Data/') if settype in fname]
 	filenames = sorted(filenames,
-			key=lambda x: int(re.findall('[0-9]{1,4}', x)[0])) 
+			key=lambda x: int(re.findall('[0-9]{1,4}', x)[0]), reverse=True) 
 
 	# Read up to $limit samples.
-	if not limit or limit < len(filenames):
+	if not limit or limit > len(filenames):
 		limit = len(filenames)
 	for _ in xrange(limit):
 		fname = "Data/" + filenames.pop()
@@ -116,6 +116,6 @@ def get_feature_vec_slice(fvec, fidx, fvalue):
 		a vector of weights for all tag values, holding a feature value
 		constant
 	"""
-	slice = fvec[fidx].copy()[:, fvalue]
+	slice = fvec[fidx][:, fvalue]
 	assert slice.shape[0] == TAG_COUNT
 	return slice

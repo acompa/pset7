@@ -41,20 +41,18 @@ def belief_propagation(xs, weights, crf):
 	assert xs.shape[1] == FEATURE_COUNT
 
 	# First node has no incoming message--use an array of zeros.
-	#message_in = np.zeros((num_tags, 1))
 	message_in = np.zeros(num_tags)
 	messages_in = [[] for _ in crf]
 	node_potentials = []
 	edge_potentials = weights[-1]	# edge potentials are just transition w's!
-	for idx, node in enumerate(crf):
-		tag_features = xs[node, :]
+	for idx in range(len(crf)):
+		tag_features = xs[idx, :]
 		# Node potential is simply the sum of all tag vectors for each fixed
 		# feature value in tag_features. Save the node potential.
 		node_potential = reduce(
 				op.add,
 				[get_feature_vec_slice(weights, fidx, fvalue)
 					for fidx, fvalue in enumerate(tag_features)])
-		#node_potential.resize((num_tags, 1))
 		node_potentials.append(node_potential)
 
 		# Message outgoing from node in the chain CRF == sum of potentials and
@@ -64,25 +62,21 @@ def belief_propagation(xs, weights, crf):
 				axis=1)
 		message_in = message_out
 
-	# After propagating to root, trace back and decode each node's assignment.
-	# Reverse incoming message list and node potentials first.
+	# After propagating to root, trace back. Reverse incoming message list and
+	# node potentials first.
 	# TODO: might not be necessary. Keep it anyway, for now.
 	max_marginals = []
-	messages_in = messages_in[::-1]
-	node_potentials = node_potentials[::-1]
-	#messages_in[0].append(np.zeros((num_tags, 1)))
-	messages_in[0].append(np.zeros((num_tags)))
-	for idx, node in enumerate(crf[::-1]):
+	messages_in[-1].append(np.zeros((num_tags)))
+	for idx in range(len(crf))[::-1]:
 		message_out = np.max((node_potentials[idx] + edge_potentials +
 				reduce(op.add, messages_in[idx])), axis=0)
 		if idx != len(crf) - 1:
-			messages_in[idx+1].append(message_out)
+			messages_in[idx-1].append(message_out)
 
-	# Get max marginals. Reversing the previous reversal so things are in
-	# order!
+	# Get max marginals and decode assignment.
 	max_marginals = [
 			node_potentials[node_idx] + reduce(op.add, messages_in[node_idx])
-			for node_idx in range(len(crf))][::-1]
+			for node_idx in range(len(crf))]
 	assignments = np.array([np.argmax(max_marg) for max_marg in max_marginals])
 
 	return assignments 

@@ -35,9 +35,9 @@ def _feature_vec(xs, y):
 	  == 0 o.w.
 
 	xs:
-		feature mat in a sample
+		feature mat for a sample
 	y:
-		tag array in a sample
+		tag array for a sample
 	"""
 	f = _create_feature_vec()
 
@@ -45,8 +45,24 @@ def _feature_vec(xs, y):
 	count = y.shape[0]
 	for idx in range(count):
 		word = xs[idx, :]
-		tag_ngram = y[idx:idx+NGRAM_LENGTH]
-		f = _update_feature_vec(f, word, tag_ngram)
+		tag = y[idx]
+
+		# Defense!
+		assert len(word) + 1 == len(f)
+
+		# Iterate over feature values in word, increment the vector
+		for fidx, fvalue in enumerate(word):
+			f[fidx][tag, fvalue] += 1
+
+		# Update ngram matrix at the end of fvec. Must update edge potential
+		# for previous AND next tag.
+		if idx != 0:
+			prev_tag = y[idx-1]
+			f[-1][prev_tag, tag] += 1
+		if idx != count - 1:
+			next_tag = y[idx+1]
+			f[-1][tag, next_tag] += 1
+
 	return f
 
 def perceptron(samples):
@@ -87,23 +103,26 @@ def perceptron(samples):
 			# reassigned once we decode part-of-speech tags for each word.
 			crf = [0 for _ in range(y.shape[0])]
 
+			# Obtain an estimate of y using max-sum BP.
+			set_trace()
 			y_est = maxsum.belief_propagation(xs, weights, crf)
 			if iter == ITERATIONS-1:
 				print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
 				print "Actual tags:  %s" % join([str(int(i)) for i in y], ' ')
-			#set_trace()
+
+			# Update weights if estimate doesn't match actual. Get the feature
+			# vector for both, then update the weights.
 			if (y != y_est).any():
-				# TODO: update weights properly--they're no longer ndarrays!!
-				f_estimate = _feature_vec(xs, y_est)
 				f_actual = _feature_vec(xs, y)
+				f_estimate = _feature_vec(xs, y_est)
 				update = [act - est for est, act in zip(f_estimate, f_actual)]
 				weights = [w + u for w, u in zip(weights, update)]
-				#print "\tIncorrect tag estimate! Weights updated to:"
-				#print weights
-				norm_weights = [w / (1.0 * ITERATIONS * len(samples))
-						for w in weights]
-				weights_bar = [wb + nw
-						for wb, nw in zip(weights_bar, norm_weights)]
+
+			# Normalize weights.
+			norm_weights = [w / (1.0 * ITERATIONS * len(samples))
+					for w in weights]
+			weights_bar = [wb + nw
+					for wb, nw in zip(weights_bar, norm_weights)]
 
 	return weights_bar
 
@@ -160,16 +179,4 @@ def _update_feature_vec(fvec, word, tag_ngram):
 	tag_ngram:
 		ngram for a word and its successor; a slice of a sample's y
 	"""
-	assert isinstance(fvec, list)
-	assert len(fvec) == len(word) + 1
-	assert len(tag_ngram) >= 1
-	tag = tag_ngram[0]
-
-	# Iterate over feature values in word, increment fvec
-	for idx, fvalue in enumerate(word):
-		fvec[idx][tag, fvalue] += 1
-
-	# Update ngram matrix at the end of fvec
-	fvec[-1][tuple(tag_ngram)] += 1
-	return fvec
 
