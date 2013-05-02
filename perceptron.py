@@ -90,7 +90,8 @@ def perceptron(samples):
 		if (iter + 1) % (ITERATIONS / 10.0) == 0:
 			sys.stdout.write("=")
 			if iter + 1 == ITERATIONS:
-				sys.stdout.write("]\nEstimates on final pass:\n")
+			#	sys.stdout.write("]\nEstimates on final pass:\n")
+				sys.stdout.write("]\n")
 		for sample in samples:
 			xs, y = sample
 
@@ -105,9 +106,9 @@ def perceptron(samples):
 
 			# Obtain an estimate of y using max-sum BP.
 			y_est = maxsum.belief_propagation(xs, weights, crf)
-			if iter == ITERATIONS-1:
-				print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
-				print "Actual tags:  %s" % join([str(int(i)) for i in y], ' ')
+			#if iter == ITERATIONS-1:
+			#	print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')
+			#	print "Actual tags:  %s" % join([str(int(i)) for i in y], ' ')
 
 			# Update weights if estimate doesn't match actual. Get the feature
 			# vector for both, then update the weights.
@@ -145,6 +146,23 @@ def estimate_tags(samples, weights):
 		estimates.append(y_new)
 
 	return estimates
+
+def error_rate(dataset, estimates):
+	"""
+	Check the error rate on estimates produced by estimate_tags().
+	"""
+	incorrect = 0.0
+	count = 0.0
+
+	for idx in range(len(estimates)):
+		estimate = estimates[idx]
+		_, actual = dataset[idx]
+		for e, a in zip(estimate, actual):
+			count += 1.0
+			if e != a:
+				incorrect += 1.0
+	
+	return incorrect / count
 
 def _create_feature_vec():
 	"""
