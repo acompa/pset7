@@ -104,7 +104,6 @@ def perceptron(samples):
 			crf = [0 for _ in range(y.shape[0])]
 
 			# Obtain an estimate of y using max-sum BP.
-			set_trace()
 			y_est = maxsum.belief_propagation(xs, weights, crf)
 			if iter == ITERATIONS-1:
 				print "Tag estimate: %s" % join([str(i) for i in y_est], ' ')

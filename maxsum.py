@@ -60,6 +60,7 @@ def belief_propagation(xs, weights, crf):
 		messages_in[idx].append(message_in)
 		message_out = np.max(message_in + node_potential + edge_potentials,
 				axis=1)
+		message_out = message_out / np.sum(message_out)	# normalizing msgs
 		message_in = message_out
 
 	# After propagating to root, trace back. Reverse incoming message list and
@@ -70,6 +71,7 @@ def belief_propagation(xs, weights, crf):
 	for idx in range(len(crf))[::-1]:
 		message_out = np.max((node_potentials[idx] + edge_potentials +
 				reduce(op.add, messages_in[idx])), axis=0)
+		message_out = message_out / np.sum(message_out)	# normalizing msgs
 		if idx != len(crf) - 1:
 			messages_in[idx-1].append(message_out)
 
